@@ -141,28 +141,27 @@ plt.imshow(capitalImPhase, cmap='gray', vmin=-np.pi, vmax=np.pi) # phase ranges 
 plt.title("Phase of Capital.jpg")
 plt.tight_layout()
 
-# # PROBLEM 2 QUESTION 2
+# PROBLEM 2 QUESTION 2
 
-# # Swap phase and perform inverse Fourier transform
-# G_uv1 = magnitude1 * np.exp(1j * phase2)
-# G_uv2 = magnitude2 * np.exp(1j * phase1)
-# g_xy1 = np.abs(np.fft.ifft2(np.fft.ifftshift(G_uv1)))
-# g_xy2 = np.abs(np.fft.ifft2(np.fft.ifftshift(G_uv2)))
+# swap magnitude and phase of sample/capital and vice versa
+newCapitalFT = sampleImMagnitude * np.exp(1j * capitalImPhase)
+newSampleFT = capitalImMagnitude * np.exp(1j * sampleImPhase)
+# take inverse fourier transform
+newCapitalIm = np.abs(np.fft.ifft2(np.fft.ifftshift(newCapitalFT)))
+newSampleIm = np.abs(np.fft.ifft2(np.fft.ifftshift(newSampleFT)))
 
-# fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+# plotting
+plt.figure(figsize=(10, 5)) # Figure 4
+plt.suptitle("Reconstructed capital/sample images after swap")
 
+plt.subplot(1, 2, 1)
+plt.imshow(newCapitalIm, cmap='gray')
+plt.title("New Capital.jpg")
 
-# # Plot the reconstructed image using the magnitude of Sample and phase of Capitol
-
-# ax[0].imshow(g_xy1, cmap='gray')
-# ax[0].set_title('Reconstructed Image\n(Magnitude: Sample, Phase: Capitol)')
-# ax[0].axis('off')
-
-# # Plot the reconstructed image using the magnitude of Capitol and phase of Sample
-# ax[1].imshow(g_xy2, cmap='gray')
-# ax[1].set_title('Reconstructed Image\n(Magnitude: Capitol, Phase: Sample)')
-# ax[1].axis('off')
-
+plt.subplot(1, 2, 2)
+plt.imshow(newSampleIm, cmap='gray')
+plt.title("New Sample.jpg")
+plt.tight_layout()
 plt.show()
 
 
