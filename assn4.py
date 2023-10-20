@@ -27,9 +27,9 @@ sigma2 = 70
 gaussianLPFilter = GaussianLowPass(sampleIm, sigma1, sigma2)
 
 # fourier transform of the image / shift the zero frequency component to the center
-gaussianLPFT = np.fft.fftshift(np.fft.fft2(sampleIm))
+sampleImFT = np.fft.fftshift(np.fft.fft2(sampleIm))
 # apply the Gaussian filter in the frequency domain (Pixel-wise multiplication)
-gaussianAppliedLPFT = gaussianLPFT * gaussianLPFilter
+gaussianAppliedLPFT = sampleImFT * gaussianLPFilter
 # compute the Inverse Fourier Transform to get the filtered image in spatial domain
 gaussianLPInverseFT = np.abs(np.fft.ifft2(np.fft.ifftshift(gaussianAppliedLPFT)))
 
@@ -74,10 +74,10 @@ D0 = 50 # Cutoff frequency
 n = 2 # Order of the filter
 buttersworthHPFilter = ButterworthHighPass(sampleIm, D0, n)
 
-# fourier Transform of the image and shift the zero frequency component to the center
-buttersworthHPFT = np.fft.fftshift(np.fft.fft2(sampleIm))
+# sampleImFT = np.fft.fftshift(np.fft.fft2(sampleIm)) was already previously defined
+
 # apply the Butterworth filter in the frequency domain
-buttersworthAppliedHPFT = buttersworthHPFT * buttersworthHPFilter
+buttersworthAppliedHPFT = sampleImFT * buttersworthHPFilter
 # compute the Inverse Fourier Transform to get the filtered image in spatial domain
 buttersworthHPInverseFT = np.abs(np.fft.ifft2(np.fft.ifftshift(buttersworthAppliedHPFT)))
 
@@ -100,65 +100,46 @@ plt.tight_layout()
 
 # PROBLEM 2 QUESTION 1:
 
+# fourier transformation and shift to center for 'sampleIm' and 'capitalIm'
+# sampleImFT = np.fft.fftshift(np.fft.fft2(sampleIm)) was already previously defined
+capitalImFT = np.fft.fftshift(np.fft.fft2(capitalIm))
 
-# # Load the images
-# img2 = mpimg.imread('Capitol.jpg')
+# the magnitude of a + bi (where a is real and b is imaginary) is sqrt(a^2 + b^2). this is just the absolute value
+sampleImMagnitude = np.abs(sampleImFT)
+capitalImMagnitude = np.abs(capitalImFT)
 
-# img_gray1 = np.mean(img, axis=2) if len(img.shape) == 3 else img
-# # Ensure the images are in grayscale
-# img_gray2 = np.mean(img2, axis=2) if len(img2.shape) == 3 else img2
+# theta = arctan(b / a) can be represented with np.angle, giving the phase
+sampleImPhase = np.angle(sampleImFT)
+capitalImPhase = np.angle(capitalImFT)
 
-# # Fourier Transform and shift zero frequency component to the center
-# F_uv1 = np.fft.fftshift(np.fft.fft2(img_gray1))
-# F_uv2 = np.fft.fftshift(np.fft.fft2(img_gray2))
+# log transformations of the magnitude, added by 1 to avoid taking the log of 0
+sampleImLog = np.log(sampleImMagnitude + 1)
+capitalImLog = np.log(capitalImMagnitude + 1)
 
-# # Extract magnitude and phase
-# magnitude1 = np.abs(F_uv1)
-# phase1 = np.angle(F_uv1)
-# magnitude2 = np.abs(F_uv2)
-# phase2 = np.angle(F_uv2)
+# Scaling
+scaledSampleImLog = sampleImLog / np.max(sampleImLog)
+scaledCapitalImLog = capitalImLog / np.max(capitalImLog)
 
-# # Log transformation of magnitude
-# log_magnitude1 = np.log(magnitude1 + 1)
-# log_magnitude2 = np.log(magnitude2 + 1)
+# plotting
+plt.figure(figsize=(12, 5)) # Figure 3
+plt.suptitle("Fourier Transform Analysis")
 
-# # Scaling
-# scaled_log_magnitude1 = log_magnitude1 / np.max(log_magnitude1)
-# scaled_log_magnitude2 = log_magnitude2 / np.max(log_magnitude2)
+plt.subplot(1, 4, 1)
+plt.imshow(scaledSampleImLog, cmap='gray')
+plt.title("Magnitude of Sample.jpg")
 
-# # ... [VISUALIZE MAGNITUDE AND PHASE SPECTRUMS HERE] ...
+plt.subplot(1, 4, 2)
+plt.imshow(sampleImPhase, cmap='gray', vmin=-np.pi, vmax=np.pi) # phase ranges from -pi to pi
+plt.title("Phase of Sample.jpg")
 
-# # Set up the plots
+plt.subplot(1, 4, 3)
+plt.imshow(scaledCapitalImLog, cmap='gray')
+plt.title("Magnitude of Capital.jpg")
 
-# fig, ax = plt.subplots(2, 2, figsize=(12, 12))
-
-
-
-# # Plot the magnitude and phase of the Fourier-transformed "Sample" image
-
-# ax[0, 0].imshow(scaled_log_magnitude1, cmap='gray')
-
-# ax[0, 0].set_title('Magnitude Spectrum of Sample')
-
-# ax[0, 0].axis('off')
-
-# ax[0, 1].imshow(phase1, cmap='gray')
-
-# ax[0, 1].set_title('Phase Spectrum of Sample')
-
-# ax[0, 1].axis('off')
-
-
-
-# # Plot the magnitude and phase of the Fourier-transformed "Capitol" image
-
-# ax[1, 0].imshow(scaled_log_magnitude2, cmap='gray')
-# ax[1, 0].set_title('Magnitude Spectrum of Capitol')
-# ax[1, 0].axis('off')
-# ax[1, 1].imshow(phase2, cmap='gray')
-# ax[1, 1].set_title('Phase Spectrum of Capitol')
-# ax[1, 1].axis('off')
-
+plt.subplot(1, 4, 4)
+plt.imshow(capitalImPhase, cmap='gray', vmin=-np.pi, vmax=np.pi) # phase ranges from -pi to pi
+plt.title("Phase of Capital.jpg")
+plt.tight_layout()
 
 # # PROBLEM 2 QUESTION 2
 
