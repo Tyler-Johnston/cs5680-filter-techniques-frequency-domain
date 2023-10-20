@@ -1,79 +1,60 @@
 import numpy as np
+import cv2
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 
-# Load the image
-image_path = 'Sample.jpg'  # Update path as needed
-img = mpimg.imread(image_path)
-
-# Ensure the image is in grayscale if it's not
-if len(img.shape) == 3 and img.shape[2] > 1:
-    img_gray = np.mean(img, axis=2)
-else:
-    img_gray = img
+sampleIm = cv2.imread('Sample.jpg', cv2.IMREAD_GRAYSCALE)
 
 # PROBLEM 1 QUESTION 1
-# Define the GaussianLowPass function with standard deviations
-def GaussianLowPass_adjusted(img, size, sigma1, sigma2):
-    D1 = np.zeros([size, size], dtype=float)
-    H1 = np.zeros([size, size], dtype=float)
+# The equation provided in the notes only uses a single sigma value, but we were given two
+# I modified the equation on slide 63 of the powerpoint. I wasn't 100% sure if this is correct, but the output appears correct
+def GaussianLowPass(im, sigma1, sigma2):
+    imageHeight, imageWidth = im.shape
+    H = np.zeros([imageHeight, imageWidth], dtype=float)
+
+    uCenter, vCenter = imageHeight // 2, imageWidth // 2  # center of the frequency domain
     
-    center_u, center_v = size // 2, size // 2  # Center of the frequency rectangle
-    
-    for u in range(0, size):
-        for v in range(0, size):
-            # Compute shifted frequencies u and v
-            u_shifted = u - center_u
-            v_shifted = v - center_v
-            
-            # Compute Gaussian filter value using sigma1 and sigma2
-            H1[u, v] = np.exp(-(u_shifted**2 / (2 * sigma1**2) + v_shifted**2 / (2 * sigma2**2)))
-            D1[u, v] = np.sqrt(u_shifted ** 2 + v_shifted ** 2)
-    
-    return [H1]
+    for u in range(imageHeight):
+        for v in range(imageWidth):
+            # compute shifted frequencies u and v
+            uShifted = u - uCenter
+            vShifted = v - vCenter
+            # compute gaussian filter value using sigma1 and sigma2
+            H[u, v] = np.exp(-(uShifted**2 / (2 * sigma1**2) + vShifted**2 / (2 * sigma2**2)))
+    return H
 
 # Parameters
-sigma1 = 20  # Standard deviation in the u (row) direction
-sigma2 = 70  # Standard deviation in the v (column) direction
-size = max(img_gray.shape)
+sigma1 = 20
+sigma2 = 70
 
-# Get Gaussian filter H1 and distance matrix D1 with adjusted function
-[H1_adjusted] = GaussianLowPass_adjusted(img_gray, size, sigma1, sigma2)
+gaussianLPFilter = GaussianLowPass(sampleIm, sigma1, sigma2)
 
-# Fourier Transform of the image and shift the zero frequency component to the center
-F_uv_adjusted = np.fft.fftshift(np.fft.fft2(img_gray))
+# fourier transform of the image / shift the zero frequency component to the center
+gaussianLPFT = np.fft.fftshift(np.fft.fft2(sampleIm))
 
-# Apply the Gaussian filter in the frequency domain (Pixel-wise multiplication)
-G_uv_adjusted = F_uv_adjusted * H1_adjusted
+# apply the Gaussian filter in the frequency domain (Pixel-wise multiplication)
+gaussianAppliedLPFT = gaussianLPFT * gaussianLPFilter
 
-# Compute the Inverse Fourier Transform to get the filtered image in spatial domain
-g_xy_adjusted = np.abs(np.fft.ifft2(np.fft.ifftshift(G_uv_adjusted)))
+# compute the Inverse Fourier Transform to get the filtered image in spatial domain
+gaussianLPInverseFT = np.abs(np.fft.ifft2(np.fft.ifftshift(gaussianAppliedLPFT)))
 
-# Set up the plots
-fig, ax = plt.subplots(1, 3, figsize=(18, 6))
+# plotting
+plt.figure(figsize=(10, 5)) # Figure 1
+plt.suptitle("Gaussian Low-Pass Filter on Sample.jpg")
 
-# Plot the original image
-ax[0].imshow(img_gray, cmap='gray')
-ax[0].set_title('Original Image')
-ax[0].axis('off')
+plt.subplot(1, 3, 1)
+plt.imshow(sampleIm, cmap='gray')
+plt.title("Original Image")
 
-# Plot the Gaussian filter
-ax[1].imshow(H1_adjusted, cmap='hot')
-ax[1].set_title('Gaussian Low-pass Filter H(u, v)')
-ax[1].axis('off')
+plt.subplot(1, 3, 2)
+plt.imshow(gaussianLPFilter, cmap='gray')
+plt.title("Gaussian Low-Pass Filter")
 
-# Plot the filtered image
-ax[2].imshow(g_xy_adjusted, cmap='gray')
-ax[2].set_title('Filtered Image')
-ax[2].axis('off')
-
-# Adjust spacing between plots
-plt.subplots_adjust(wspace=0.3)
-
+plt.subplot(1, 3, 3)
+plt.imshow(gaussianLPInverseFT, cmap='gray')
+plt.title("Filtered Image")
+plt.tight_layout()
 
 # PROBLEM 1 QUESTION 2:
-
-# Define the Butterworth High-Pass filter function
 def ButterworthHighPass(img, size, D0, n):
     D = np.zeros([size, size], dtype=float)
     H = np.zeros([size, size], dtype=float)
@@ -95,13 +76,13 @@ def ButterworthHighPass(img, size, D0, n):
 # Parameters
 D0 = 50  # Cutoff frequency
 n = 2    # Order of the filter
-size = max(img_gray.shape)
+size = max(sampleIm.shape)
 
 # Get Butterworth filter H and distance matrix D
-[H] = ButterworthHighPass(img_gray, size, D0, n)
+[H] = ButterworthHighPass(sampleIm, size, D0, n)
 
 # Fourier Transform of the image and shift the zero frequency component to the center
-F_uv = np.fft.fftshift(np.fft.fft2(img_gray))
+F_uv = np.fft.fftshift(np.fft.fft2(sampleIm))
 
 # Apply the Butterworth filter in the frequency domain
 G_uv = F_uv * H
@@ -113,7 +94,7 @@ g_xy = np.abs(np.fft.ifft2(np.fft.ifftshift(G_uv)))
 fig, ax = plt.subplots(1, 3, figsize=(18, 6))
 
 # Plot the original image
-ax[0].imshow(img_gray, cmap='gray')
+ax[0].imshow(sampleIm, cmap='gray')
 ax[0].set_title('Original Image')
 ax[0].axis('off')
 
@@ -267,3 +248,4 @@ plt.show()
 
 # plt.subplots_adjust(wspace=0.3)
 # plt.show()
+
