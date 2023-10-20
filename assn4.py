@@ -2,11 +2,11 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-sampleIm = cv2.imread('Sample.jpg', cv2.IMREAD_GRAYSCALE)
+sampleIm = cv2.imread("Sample.jpg", cv2.IMREAD_GRAYSCALE)
+capitalIm = cv2.imread("Capitol.jpg", cv2.IMREAD_GRAYSCALE)
 
 # PROBLEM 1 QUESTION 1
 # The equation provided in the notes only uses a single sigma value, but we were given two
-# I modified the equation on slide 63 of the powerpoint. I wasn't 100% sure if this is correct, but the output appears correct
 def GaussianLowPass(im, sigma1, sigma2):
     imageHeight, imageWidth = im.shape
     H = np.zeros([imageHeight, imageWidth], dtype=float)
@@ -22,18 +22,14 @@ def GaussianLowPass(im, sigma1, sigma2):
             H[u, v] = np.exp(-(uShifted**2 / (2 * sigma1**2) + vShifted**2 / (2 * sigma2**2)))
     return H
 
-# Parameters
 sigma1 = 20
 sigma2 = 70
-
 gaussianLPFilter = GaussianLowPass(sampleIm, sigma1, sigma2)
 
 # fourier transform of the image / shift the zero frequency component to the center
 gaussianLPFT = np.fft.fftshift(np.fft.fft2(sampleIm))
-
 # apply the Gaussian filter in the frequency domain (Pixel-wise multiplication)
 gaussianAppliedLPFT = gaussianLPFT * gaussianLPFilter
-
 # compute the Inverse Fourier Transform to get the filtered image in spatial domain
 gaussianLPInverseFT = np.abs(np.fft.ifft2(np.fft.ifftshift(gaussianAppliedLPFT)))
 
@@ -55,63 +51,55 @@ plt.title("Filtered Image")
 plt.tight_layout()
 
 # PROBLEM 1 QUESTION 2:
-def ButterworthHighPass(img, size, D0, n):
-    D = np.zeros([size, size], dtype=float)
-    H = np.zeros([size, size], dtype=float)
+def ButterworthHighPass(im, D0, n):
+    imageHeight, imageWidth = im.shape
+    H = np.zeros([imageHeight, imageWidth], dtype=float)
     
-    center_u, center_v = size // 2, size // 2
+    uCenter, vCenter = imageHeight // 2, imageWidth // 2 # center of the frequency domain
     
-    for u in range(0, size):
-        for v in range(0, size):
-            # Compute shifted frequencies u and v
-            u_shifted = u - center_u
-            v_shifted = v - center_v
+    for u in range(imageHeight):
+        for v in range(imageWidth):
+            uShifted = u - uCenter
+            vShifted = v - vCenter
             
-            # Compute distance D and Butterworth filter value using D0 and n
-            D[u, v] = np.sqrt(u_shifted ** 2 + v_shifted ** 2)
-            H[u, v] = 1 / (1 + (D0 / D[u, v])**(2*n))
-    
-    return [H]
+            # compute distance and Butterworth filter value using D0 and n
+            distance = np.sqrt(uShifted ** 2 + vShifted ** 2)
+            # make sure it isn't possible to divide by 0
+            if distance != 0:
+                H[u, v] = 1 / (1 + (D0 / distance)**(2*n))
 
-# Parameters
-D0 = 50  # Cutoff frequency
-n = 2    # Order of the filter
-size = max(sampleIm.shape)
+    return H
 
-# Get Butterworth filter H and distance matrix D
-[H] = ButterworthHighPass(sampleIm, size, D0, n)
+D0 = 50 # Cutoff frequency
+n = 2 # Order of the filter
+buttersworthHPFilter = ButterworthHighPass(sampleIm, D0, n)
 
-# Fourier Transform of the image and shift the zero frequency component to the center
-F_uv = np.fft.fftshift(np.fft.fft2(sampleIm))
+# fourier Transform of the image and shift the zero frequency component to the center
+buttersworthHPFT = np.fft.fftshift(np.fft.fft2(sampleIm))
+# apply the Butterworth filter in the frequency domain
+buttersworthAppliedHPFT = buttersworthHPFT * buttersworthHPFilter
+# compute the Inverse Fourier Transform to get the filtered image in spatial domain
+buttersworthHPInverseFT = np.abs(np.fft.ifft2(np.fft.ifftshift(buttersworthAppliedHPFT)))
 
-# Apply the Butterworth filter in the frequency domain
-G_uv = F_uv * H
+# plotting
+plt.figure(figsize=(10, 5)) # Figure 2
+plt.suptitle("Buttersworth High-Pass Filter on Sample.jpg")
 
-# Compute the Inverse Fourier Transform to get the filtered image in spatial domain
-g_xy = np.abs(np.fft.ifft2(np.fft.ifftshift(G_uv)))
+plt.subplot(1, 3, 1)
+plt.imshow(sampleIm, cmap='gray')
+plt.title("Original Image")
 
-# Set up the plots
-fig, ax = plt.subplots(1, 3, figsize=(18, 6))
+plt.subplot(1, 3, 2)
+plt.imshow(buttersworthHPFilter, cmap='gray')
+plt.title("Buttersworth High-Pass Filter")
 
-# Plot the original image
-ax[0].imshow(sampleIm, cmap='gray')
-ax[0].set_title('Original Image')
-ax[0].axis('off')
+plt.subplot(1, 3, 3)
+plt.imshow(buttersworthHPInverseFT, cmap='gray')
+plt.title("Filtered Image")
+plt.tight_layout()
 
-# Plot the Butterworth filter
-ax[1].imshow(H, cmap='hot')
-ax[1].set_title('Butterworth High-pass Filter H(u, v)')
-ax[1].axis('off')
+# PROBLEM 2 QUESTION 1:
 
-# Plot the filtered image
-ax[2].imshow(g_xy, cmap='gray')
-ax[2].set_title('Filtered Image')
-ax[2].axis('off')
-
-plt.subplots_adjust(wspace=0.3)
-plt.show()
-
-# # PROBLEM 2 QUESTION 1:
 
 # # Load the images
 # img2 = mpimg.imread('Capitol.jpg')
