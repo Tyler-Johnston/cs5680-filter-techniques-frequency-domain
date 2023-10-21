@@ -168,7 +168,7 @@ plt.imshow(newSampleIm, cmap='gray')
 plt.title("New Sample.jpg")
 plt.tight_layout()
 
-# QUESTION 3: 
+# PROBLEM 3: 
 
 # 1) compute the centered DFT
 boyImFT = np.fft.fftshift(np.fft.fft2(boyIm))
@@ -268,7 +268,7 @@ print("FIGURE 6 DIFFERENCES:")
 print("The image with 2 largest distinct magnitudes contains a lot of noise. moving onto 3, we can see that the noise is reduced slightly")
 print("Moving onto 5 distinct magnitudes, the noise is significantly reduced and the boy can be clearly seen.\nHowever, moving on to 6 you can see some of the original image is being lost (not by a lot though)\n")
 
-# QUESTION 4
+# PROBLEM 4
 
 # call the built-in function to compare lenaIm and the wavelet restoredLena
 maxLevel = pywt.dwt_max_level(lenaIm.shape[0], pywt.Wavelet('db2'))
@@ -279,13 +279,14 @@ restoredLena = pywt.waverec2(coeffs, 'db2')
 
 # comparing the matrix of lenaIm and restoredLena, there was exactly 1 pixel difference
 # round the values and clip them to the valid range ensures they are exactly the same
+# although in real-applications, this isn't necessary as this difference is incredibly negligible
 restoredLenaRounded = np.round(restoredLena).astype(np.uint8)
 restoredLenaClipped = np.clip(restoredLenaRounded, 0, 255)
 
 if np.array_equal(lenaIm, restoredLenaClipped):
-    print("The original and the restored images are the same.")
+    print("The original and the restored images (of lena / restored lena) are the same.\n")
 else:
-    print("The original and the restored images are different.")
+    print("The original and the restored images (of lena / restored lena) are different.\n")
 
 # 3-level decomposition
 coeffs = pywt.wavedec2(lenaIm, 'db2', level=3)
@@ -345,6 +346,23 @@ for i in range(CV3Height):
 set4Coeffs[1] = CH3, CV3Copy, CD3
 set4RestoredImage = pywt.waverec2(set4Coeffs, 'db2')
 
+# differences
+print("ORIGINAL VS SET 1 (CA3):")
+print("The difference is visually apparent. The original lady is clearly visible and sharply defined. However, set 1 displays distinct blurry blocks causing a loss of clarity")
+print("This occured because CA3 only contains the low-level frequencies of the origninal image (lower level of detail), and taking the average of those 4x4 non-overlapping blocks and setting those values caused a blurry blocky image\n")
+
+print("ORIGINAL VS SET 2 (CH1):")
+print("Set 2 exhibits a subtle reduction in horizontal details compared to the original.\nAlthough there isn't a ton of obvious changes, modifying CH1 should be softening the horizontal edges. At level-1, this didn't cause an obvious change")
+print("The horizontal details at level 1 are not the primary features of the image. If this were a different image with pronunced horizontal features, its likely that the changes would have been more obvious\n")
+
+print("ORIGINAL VS SET 3 (CD2):")
+print("Similar deal as set 2. There's a slight reduction in diagonal details/edges.\nWhile its not incredibly obvious, this happens from the zeroing of the CD2 coefficients.")
+print("This effect suggests that the diagonal details at level 2 are not a dominant feature of 'lena'. If this were a different image with pronunced diagonal features, its likely that the changes would have been more obvious\n")
+
+print("ORIGINAL VS SET 4 (CV3):")
+print("The changes in set 4 are relatively more noticeable. Certain regions, particularly around edges, appear rougher.\nThis is a result of setting the CV3 coefficients, which capture vertical details at level 3, to zero. This indicates that the image had significant vertical details at this level.\n")
+
+
 # plotting
 plt.figure(figsize=(5, 5)) # Figure 7
 plt.suptitle("4x4 average approximation")
@@ -376,4 +394,4 @@ plt.axis("off")
 
 
 
-plt.show()
+# plt.show()
