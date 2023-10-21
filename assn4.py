@@ -3,12 +3,12 @@ import cv2
 import matplotlib.pyplot as plt
 import pywt
 import matplotlib.image as mpimg
+from skimage.util import random_noise # for problem 5, this is a built-in function that adds gaussian white noise
 
 sampleIm = cv2.imread("Sample.jpg", cv2.IMREAD_GRAYSCALE)
 capitalIm = cv2.imread("Capitol.jpg", cv2.IMREAD_GRAYSCALE)
 lenaIm = cv2.imread("Lena.jpg", cv2.IMREAD_GRAYSCALE)
 boyIm = mpimg.imread('boy_noisy.gif') # use mpimg.imread for .gif images, as cv2 as issues reading this
-
 
 # PROBLEM 1 QUESTION 1
 # The equation provided in the notes only uses a single sigma value, but we were given two
@@ -362,7 +362,6 @@ print("This effect suggests that the diagonal details at level 2 are not a domin
 print("ORIGINAL VS SET 4 (CV3):")
 print("The changes in set 4 are relatively more noticeable. Certain regions, particularly around edges, appear rougher.\nThis is a result of setting the CV3 coefficients, which capture vertical details at level 3, to zero. This indicates that the image had significant vertical details at this level.\n")
 
-
 # plotting
 plt.figure(figsize=(5, 5)) # Figure 7
 plt.suptitle("4x4 average approximation")
@@ -391,6 +390,109 @@ plt.subplot(1, 1, 1)
 plt.imshow(set4RestoredImage, cmap='gray')
 plt.title("Set #4:")
 plt.axis("off")
+
+# PROBLEM 5
+
+noisyLenaOriginal = random_noise(lenaIm, mode='gaussian', mean=0, var=0.01) * 255
+noisyLenaOriginal = np.clip(noisyLenaOriginal, 0, 255).astype(np.uint8)
+cv2.imwrite("NoisyLena.bmp", noisyLenaOriginal)
+
+# Denoising Method 1
+noisyLena = cv2.imread("NoisyLena.bmp", cv2.IMREAD_GRAYSCALE)
+myCoeffs = pywt.wavedec2(noisyLena, 'db2', level=3)
+
+CA3 = myCoeffs[0]
+HL3, LH3, HH3 = myCoeffs[1]
+HL2, LH2, HH2 = myCoeffs[2]
+HL1, LH1, HH1 = myCoeffs[3]
+
+def denoisingMethod1(HHX, LHX, HHX):
+
+    # (LH1, HL1, and HH1)
+    noiseStdDev = np.median(np.abs(HHX)) / 0.6745
+    M = np.prod(LH1.shape) + np.prod(HL1.shape) + np.prod(HHX.shape)
+    t = noiseStdDev * np.sqrt(2 * np.log(M1))
+
+    LH1Copy = np.copy(LH1)
+    LH1Copy[LH1 >= t1] -= t1
+    LH1Copy[LH1 <= -t1] += t1
+    LH1Copy[np.abs(LH1) < t1] = 0
+
+    HL1Copy = np.copy(HL1)
+    HL1Copy[HL1 >= t1] -= t1
+    HL1Copy[HL1 <= -t1] += t1
+    HL1Copy[np.abs(HL1) < t1] = 0
+
+    HH1Copy = np.copy(HH1)
+    HH1Copy[HH1 >= t1] -= t1
+    HH1Copy[HH1 <= -t1] += t1
+    HH1Copy[np.abs(HH1) < t1] = 0
+
+
+
+# (LH1, HL1, and HH1)
+noiseStdDev1 = np.median(np.abs(HH1)) / 0.6745
+M1 = np.prod(LH1.shape) + np.prod(HL1.shape) + np.prod(HH1.shape)
+t1 = noiseStdDev1 * np.sqrt(2 * np.log(M1))
+
+LH1Copy = np.copy(LH1)
+LH1Copy[LH1 >= t1] -= t1
+LH1Copy[LH1 <= -t1] += t1
+LH1Copy[np.abs(LH1) < t1] = 0
+
+HL1Copy = np.copy(HL1)
+HL1Copy[HL1 >= t1] -= t1
+HL1Copy[HL1 <= -t1] += t1
+HL1Copy[np.abs(HL1) < t1] = 0
+
+HH1Copy = np.copy(HH1)
+HH1Copy[HH1 >= t1] -= t1
+HH1Copy[HH1 <= -t1] += t1
+HH1Copy[np.abs(HH1) < t1] = 0
+
+# (LH2, HL2, and HH2)
+noiseStdDev2 = np.median(np.abs(HH2)) / 0.6745
+M2 = np.prod(LH2.shape) + np.prod(HL2.shape) + np.prod(HH2.shape)
+t2 = noiseStdDev2 * np.sqrt(2 * np.log(M2))
+
+LH2Copy = np.copy(LH2)
+LH2Copy[LH2 >= t2] -= t2
+LH2Copy[LH2 <= -t2] += t2
+LH2Copy[np.abs(LH2) < t2] = 0
+
+HL2Copy = np.copy(HL2)
+HL2Copy[HL2 >= t2] -= t2
+HL2Copy[HL2 <= -t2] += t2
+HL2Copy[np.abs(HL2) < t2] = 0
+
+HH2Copy = np.copy(HH2)
+HH2Copy[HH2 >= t2] -= t2
+HH2Copy[HH2 <= -t2] += t2
+HH2Copy[np.abs(HH2) < t2] = 0
+
+# (LH3, HL3, and HH3)
+noiseStdDev3 = np.median(np.abs(HH3)) / 0.6745
+M3 = np.prod(LH3.shape) + np.prod(HL3.shape) + np.prod(HH3.shape)
+t3 = noiseStdDev3 * np.sqrt(2 * np.log(M3))
+
+LH3Copy = np.copy(LH3)
+LH3Copy[LH3 >= t3] -= t3
+LH3Copy[LH3 <= -t3] += t3
+LH3Copy[np.abs(LH3) < t3] = 0
+
+HL3Copy = np.copy(HL3)
+HL3Copy[HL3 >= t3] -= t3
+HL3Copy[HL3 <= -t3] += t3
+HL3Copy[np.abs(HL3) < t3] = 0
+
+HH3Copy = np.copy(HH3)
+HH3Copy[HH3 >= t3] -= t3
+HH3Copy[HH3 <= -t3] += t3
+HH3Copy[np.abs(HH3) < t3] = 0
+
+denoisedCoeffs = [CA3, (HL3Copy, LH3Copy, HH3Copy), (HL2Copy, LH2Copy, HH2Copy), (HL1Copy, LH1Copy, HH1Copy)]
+denoisedLena = pywt.waverec2(denoisedCoeffs, 'db2')
+
 
 
 
