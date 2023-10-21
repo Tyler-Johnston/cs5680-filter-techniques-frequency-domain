@@ -406,94 +406,59 @@ HL3, LH3, HH3 = myCoeffs[1]
 HL2, LH2, HH2 = myCoeffs[2]
 HL1, LH1, HH1 = myCoeffs[3]
 
-def denoisingMethod1(HHX, LHX, HHX):
+def denoisingMethod(HHX, LHX, HLX, method1=True):
 
-    # (LH1, HL1, and HH1)
-    noiseStdDev = np.median(np.abs(HHX)) / 0.6745
-    M = np.prod(LH1.shape) + np.prod(HL1.shape) + np.prod(HHX.shape)
-    t = noiseStdDev * np.sqrt(2 * np.log(M1))
+    if method1:
+        noiseStdDev = np.median(np.abs(HHX)) / 0.6745
+    else: 
+        combinedCoeffs = np.hstack((LH1.ravel(), HL1.ravel(), HH1.ravel()))
+        noiseStdDev = np.median(np.abs(combinedCoeffs)) / 0.6745
 
-    LH1Copy = np.copy(LH1)
-    LH1Copy[LH1 >= t1] -= t1
-    LH1Copy[LH1 <= -t1] += t1
-    LH1Copy[np.abs(LH1) < t1] = 0
+    M = np.prod(LHX.shape) + np.prod(HLX.shape) + np.prod(HHX.shape)
+    t = noiseStdDev * np.sqrt(2 * np.log(M))
 
-    HL1Copy = np.copy(HL1)
-    HL1Copy[HL1 >= t1] -= t1
-    HL1Copy[HL1 <= -t1] += t1
-    HL1Copy[np.abs(HL1) < t1] = 0
+    LHXCopy = np.copy(LHX)
+    LHXCopy[LHX >= t] -= t
+    LHXCopy[LHX <= -t] += t
+    LHXCopy[np.abs(LHX) < t] = 0
 
-    HH1Copy = np.copy(HH1)
-    HH1Copy[HH1 >= t1] -= t1
-    HH1Copy[HH1 <= -t1] += t1
-    HH1Copy[np.abs(HH1) < t1] = 0
+    HLXCopy = np.copy(HLX)
+    HLXCopy[HLX >= t] -= t
+    HLXCopy[HLX <= -t] += t
+    HLXCopy[np.abs(HLX) < t] = 0
 
+    HHXCopy = np.copy(HHX)
+    HHXCopy[HHX >= t] -= t
+    HHXCopy[HHX <= -t] += t
+    HHXCopy[np.abs(HHX) < t] = 0
 
+    return (HLXCopy, LHXCopy, HHXCopy)
 
-# (LH1, HL1, and HH1)
-noiseStdDev1 = np.median(np.abs(HH1)) / 0.6745
-M1 = np.prod(LH1.shape) + np.prod(HL1.shape) + np.prod(HH1.shape)
-t1 = noiseStdDev1 * np.sqrt(2 * np.log(M1))
+# METHOD 1
+HL1Copy1, LH1Copy1, HH1Copy1 = denoisingMethod(HH1, LH1, HL1)
+HL2Copy1, LH2Copy1, HH2Copy1 = denoisingMethod(HH2, LH2, HL2)
+HL3Copy1, LH3Copy1, HH3Copy1 = denoisingMethod(HH3, LH3, HL3)
 
-LH1Copy = np.copy(LH1)
-LH1Copy[LH1 >= t1] -= t1
-LH1Copy[LH1 <= -t1] += t1
-LH1Copy[np.abs(LH1) < t1] = 0
+denoisedCoeffs1 = [CA3, (HL3Copy1, LH3Copy1, HH3Copy1), (HL2Copy1, LH2Copy1, HH2Copy1), (HL1Copy1, LH1Copy1, HH1Copy1)]
+denoisedLena1 = pywt.waverec2(denoisedCoeffs1, 'db2')
 
-HL1Copy = np.copy(HL1)
-HL1Copy[HL1 >= t1] -= t1
-HL1Copy[HL1 <= -t1] += t1
-HL1Copy[np.abs(HL1) < t1] = 0
+# METHOD 2
+HL1Copy2, LH1Copy2, HH1Copy2 = denoisingMethod(HH1, LH1, HL1, False)
+HL2Copy2, LH2Copy2, HH2Copy2 = denoisingMethod(HH2, LH2, HL2, False)
+HL3Copy2, LH3Copy2, HH3Copy2 = denoisingMethod(HH3, LH3, HL3, False)
 
-HH1Copy = np.copy(HH1)
-HH1Copy[HH1 >= t1] -= t1
-HH1Copy[HH1 <= -t1] += t1
-HH1Copy[np.abs(HH1) < t1] = 0
+denoisedCoeffs2 = [CA3, (HL3Copy2, LH3Copy2, HH3Copy2), (HL2Copy2, LH2Copy2, HH2Copy2), (HL1Copy2, LH1Copy2, HH1Copy2)]
+denoisedLena2 = pywt.waverec2(denoisedCoeffs2, 'db2')
 
-# (LH2, HL2, and HH2)
-noiseStdDev2 = np.median(np.abs(HH2)) / 0.6745
-M2 = np.prod(LH2.shape) + np.prod(HL2.shape) + np.prod(HH2.shape)
-t2 = noiseStdDev2 * np.sqrt(2 * np.log(M2))
+plt.figure(figsize=(10, 5)) # Figure 11
+plt.suptitle("Denoisng Methods")
+plt.subplot(1, 2, 1)
+plt.imshow(denoisedLena1, cmap='gray')
+plt.title("Method 1")
+plt.axis("off")
 
-LH2Copy = np.copy(LH2)
-LH2Copy[LH2 >= t2] -= t2
-LH2Copy[LH2 <= -t2] += t2
-LH2Copy[np.abs(LH2) < t2] = 0
-
-HL2Copy = np.copy(HL2)
-HL2Copy[HL2 >= t2] -= t2
-HL2Copy[HL2 <= -t2] += t2
-HL2Copy[np.abs(HL2) < t2] = 0
-
-HH2Copy = np.copy(HH2)
-HH2Copy[HH2 >= t2] -= t2
-HH2Copy[HH2 <= -t2] += t2
-HH2Copy[np.abs(HH2) < t2] = 0
-
-# (LH3, HL3, and HH3)
-noiseStdDev3 = np.median(np.abs(HH3)) / 0.6745
-M3 = np.prod(LH3.shape) + np.prod(HL3.shape) + np.prod(HH3.shape)
-t3 = noiseStdDev3 * np.sqrt(2 * np.log(M3))
-
-LH3Copy = np.copy(LH3)
-LH3Copy[LH3 >= t3] -= t3
-LH3Copy[LH3 <= -t3] += t3
-LH3Copy[np.abs(LH3) < t3] = 0
-
-HL3Copy = np.copy(HL3)
-HL3Copy[HL3 >= t3] -= t3
-HL3Copy[HL3 <= -t3] += t3
-HL3Copy[np.abs(HL3) < t3] = 0
-
-HH3Copy = np.copy(HH3)
-HH3Copy[HH3 >= t3] -= t3
-HH3Copy[HH3 <= -t3] += t3
-HH3Copy[np.abs(HH3) < t3] = 0
-
-denoisedCoeffs = [CA3, (HL3Copy, LH3Copy, HH3Copy), (HL2Copy, LH2Copy, HH2Copy), (HL1Copy, LH1Copy, HH1Copy)]
-denoisedLena = pywt.waverec2(denoisedCoeffs, 'db2')
-
-
-
-
-# plt.show()
+plt.subplot(1, 2, 2) # Figure 12
+plt.imshow(denoisedLena2, cmap='gray')
+plt.title("Method 2")
+plt.axis("off")
+plt.show()
