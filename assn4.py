@@ -1,9 +1,12 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 sampleIm = cv2.imread("Sample.jpg", cv2.IMREAD_GRAYSCALE)
 capitalIm = cv2.imread("Capitol.jpg", cv2.IMREAD_GRAYSCALE)
+boyIm = mpimg.imread('boy_noisy.gif')
+
 
 # PROBLEM 1 QUESTION 1
 # The equation provided in the notes only uses a single sigma value, but we were given two
@@ -162,58 +165,106 @@ plt.subplot(1, 2, 2)
 plt.imshow(newSampleIm, cmap='gray')
 plt.title("New Sample.jpg")
 plt.tight_layout()
-plt.show()
-
 
 # QUESTION 3: 
 
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import matplotlib.image as mpimg
+# 1) compute the centered DFT
+boyImFT = np.fft.fftshift(np.fft.fft2(boyIm))
 
-# # ... [Load Image and Compute Centered DFT as before] ...
+# 2) compute the magnitude of the centered DFT image and find the locations (i.e, frequencies) containing the four largest distinct magnitudes
+# by excluding the magnitude at the center
+boyImMagnitude = np.abs(boyImFT)
 
-# def find_largest_magnitudes(F_uv, num_magnitudes):
-#     magnitude_spectrum = np.abs(F_uv).copy()
-#     center_coords = (magnitude_spectrum.shape[0] // 2, magnitude_spectrum.shape[1] // 2)
-#     magnitude_spectrum[center_coords] = 0
-#     largest_indices = []
-#     for _ in range(num_magnitudes):
-#         max_index = np.unravel_index(np.argmax(magnitude_spectrum, axis=None), magnitude_spectrum.shape)
-#         largest_indices.append(max_index)
-#         magnitude_spectrum[max_index] = 0
-#     return largest_indices
+def findTopMagnitudes(magnitude, n=4):
+    xMid, yMid = magnitude.shape[0] // 2, magnitude.shape[1] // 2
+    magnitudeCopy = magnitude.copy()
+    # set a 2x2 region around the center to 0, the center values are the highest and not what we want to look at
+    magnitudeCopy[xMid-1:xMid+2, yMid-1:yMid+2] = 0
+    # .ravel() falttens a 2D array. np.argpartition locates the smallest/largest values without sorting (pretty efficient)
+    # the -n param indicates the 'n' largest values are at the end, and [-n:] grabs the last n largest elements only
+    indices = np.argpartition(magnitudeCopy.ravel(), -n)[-n:]
+    # convert the flattened indices to 2D coordinates
+    coordinates = np.column_stack(np.unravel_index(indices, magnitude.shape))
+    return coordinates
 
-# def replace_with_neighbor_average(F_uv, indices):
-#     F_uv_modified = F_uv.copy()
-#     neighbors = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-#     for idx in indices:
-#         neighbor_values = [F_uv_modified[idx[0] + n[0], idx[1] + n[1]] for n in neighbors if
-#                            0 <= idx[0] + n[0] < F_uv.shape[0] and 0 <= idx[1] + n[1] < F_uv.shape[1]]
-#         F_uv_modified[idx] = np.mean(neighbor_values)
-#     return F_uv_modified
+# get the top 4 magnitude locations and their corresponding pairs, as specified in class
+# this suggest the top 8 values need to be computed
+topMagnitudes = findTopMagnitudes(boyImMagnitude)
 
-# def reconstruct_image_by_replacing_magnitudes(F_uv, num_magnitudes):
-#     largest_indices = find_largest_magnitudes(F_uv, num_magnitudes)
-#     F_uv_modified = replace_with_neighbor_average(F_uv, largest_indices)
-#     g_xy_reconstructed = np.abs(np.fft.ifft2(np.fft.ifftshift(F_uv_modified)))
-#     return g_xy_reconstructed
+# 3) replace the value at each location with the average of its 8 neighbors
+def replaceWithNeighborAverage(magnitude, locations):
+    magnitudeCopy = magnitude.copy()
+     # For each location, compute the average of its neighbors and replace the value
+    for x, y in locations:
+        neighbors = [(x-1, y-1), (x-1, y), (x-1, y+1), (x, y-1), (x, y+1), (x+1, y-1), (x+1, y), (x+1, y+1)]
+        # ensure neighbors are within the bounds of the image
+        validNeighbors = [n for n in neighbors if 0 <= n[0] < magnitude.shape[0] and 0 <= n[1] < magnitude.shape[1]]
+        # compute the average of the neighbors
+        average = np.mean([magnitude[nx, ny] for nx, ny in validNeighbors])
+        # replace the value at the location with the average
+        magnitudeCopy[x, y] = average
+    return magnitudeCopy
 
-# # ... [Compute Centered DFT of Noisy Image as before] ...
+def restoreImage(ft, magnitude, n):
 
-# magnitude_numbers = [2, 3, 5, 6]
-# reconstructed_images = [reconstruct_image_by_replacing_magnitudes(F_uv_noisy, num) for num in magnitude_numbers]
+    myTopMagnitudes = findTopMagnitudes(magnitude, n)
+    newImMagnitude = replaceWithNeighborAverage(magnitude, myTopMagnitudes)
+    # compute the inverse DFT
+    phase = np.angle(ft)
+    newImFT = newImMagnitude * np.exp(1j * phase)
+    restoredImage = np.abs(np.fft.ifft2(np.fft.ifftshift(newImFT)))
+    return restoredImage
 
-# fig, ax = plt.subplots(1, len(magnitude_numbers) + 1, figsize=(18, 6))
-# ax[0].imshow(img_noisy_gray, cmap='gray')
-# ax[0].set_title('Original Noisy Image')
-# ax[0].axis('off')
+restoredImageDefault = restoreImage(boyImFT, boyImMagnitude, 4)
+restoredImageTwoVals = restoreImage(boyImFT, boyImMagnitude, 2)
+restoredImageThreeVals = restoreImage(boyImFT, boyImMagnitude, 3)
+restoredImageFiveVals = restoreImage(boyImFT, boyImMagnitude, 5)
+restoredImageSixVals = restoreImage(boyImFT, boyImMagnitude, 6)
 
-# for i, img in enumerate(reconstructed_images):
-#     ax[i+1].imshow(img, cmap='gray')
-#     ax[i+1].set_title(f'Reconstructed Image\n({magnitude_numbers[i]} Largest Magnitudes Replaced)')
-#     ax[i+1].axis('off')
+# plotting original vs default restored noisy boy image
+plt.figure(figsize=(10, 6))
 
-# plt.subplots_adjust(wspace=0.3)
-# plt.show()
+plt.subplot(1, 2, 1)
+plt.imshow(boyIm, cmap='gray')
+plt.title("Original Image")
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+plt.imshow(restoredImageDefault, cmap='gray')
+plt.title("Restored Image")
+plt.axis('off')
+plt.tight_layout()
+
+# plotting the 4 new restored images
+plt.figure(figsize=(20, 5))
+plt.subplot(1, 4, 1)
+plt.imshow(restoredImageTwoVals, cmap='gray')
+plt.title("Restored Im: 2 Largest Magnitudes")
+plt.axis('off')
+
+plt.subplot(1, 4, 2)
+plt.imshow(restoredImageThreeVals, cmap='gray')
+plt.title("Restored Im: 3 Largest Magnitudes")
+plt.axis('off')
+
+plt.subplot(1, 4, 3)
+plt.imshow(restoredImageFiveVals, cmap='gray')
+plt.title("Restored Im: 5 Largest Magnitudes")
+plt.axis('off')
+
+plt.subplot(1, 4, 4)
+plt.imshow(restoredImageSixVals, cmap='gray')
+plt.title("Restored Im: 6 Largest Magnitudes")
+plt.axis('off')
+plt.tight_layout()
+
+print("FIGURE 5 DIFFERENCES:")
+print("This difference is pretty obvious - the original contains a LOT of noise. The restored image removes this and the boy is very visible.")
+print("The original has those diagonal streaks and the restored removed this.\n")
+
+print("FIGURE 6 DIFFERENCES:")
+print("The image with 2 largest distinct magnitudes contains a lot of noise. moving onto 3, we can see that the noise is reduced slightly")
+print("Moving onto 5 distinct magnitudes, the noise is significantly reduced and the boy can be clearly seen.\nHowever, moving on to 6 you can see some of the original image is being lost (not by a lot though)")
+
+plt.show()
 
