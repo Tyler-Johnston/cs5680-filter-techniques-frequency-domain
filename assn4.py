@@ -1,11 +1,13 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import pywt
 import matplotlib.image as mpimg
 
 sampleIm = cv2.imread("Sample.jpg", cv2.IMREAD_GRAYSCALE)
 capitalIm = cv2.imread("Capitol.jpg", cv2.IMREAD_GRAYSCALE)
-boyIm = mpimg.imread('boy_noisy.gif')
+lenaIm = cv2.imread("Lena.jpg", cv2.IMREAD_GRAYSCALE)
+boyIm = mpimg.imread('boy_noisy.gif') # use mpimg.imread for .gif images, as cv2 as issues reading this
 
 
 # PROBLEM 1 QUESTION 1
@@ -236,7 +238,7 @@ plt.axis('off')
 plt.tight_layout()
 
 # plotting the 4 new restored images
-plt.figure(figsize=(20, 5))
+plt.figure(figsize=(15, 5))
 plt.subplot(1, 4, 1)
 plt.imshow(restoredImageTwoVals, cmap='gray')
 plt.title("Restored Im: 2 Largest Magnitudes")
@@ -264,7 +266,114 @@ print("The original has those diagonal streaks and the restored removed this.\n"
 
 print("FIGURE 6 DIFFERENCES:")
 print("The image with 2 largest distinct magnitudes contains a lot of noise. moving onto 3, we can see that the noise is reduced slightly")
-print("Moving onto 5 distinct magnitudes, the noise is significantly reduced and the boy can be clearly seen.\nHowever, moving on to 6 you can see some of the original image is being lost (not by a lot though)")
+print("Moving onto 5 distinct magnitudes, the noise is significantly reduced and the boy can be clearly seen.\nHowever, moving on to 6 you can see some of the original image is being lost (not by a lot though)\n")
+
+# QUESTION 4
+
+# call the built-in function to compare lenaIm and the wavelet restoredLena
+maxLevel = pywt.dwt_max_level(lenaIm.shape[0], pywt.Wavelet('db2'))
+# apply a maximum-level "db2" wavelet decomposition
+coeffs = pywt.wavedec2(lenaIm, 'db2', level=maxLevel)
+# apply the inverse wavelet transform to restore the image
+restoredLena = pywt.waverec2(coeffs, 'db2')
+
+# comparing the matrix of lenaIm and restoredLena, there was exactly 1 pixel difference
+# round the values and clip them to the valid range ensures they are exactly the same
+restoredLenaRounded = np.round(restoredLena).astype(np.uint8)
+restoredLenaClipped = np.clip(restoredLenaRounded, 0, 255)
+
+if np.array_equal(lenaIm, restoredLenaClipped):
+    print("The original and the restored images are the same.")
+else:
+    print("The original and the restored images are different.")
+
+# 3-level decomposition
+coeffs = pywt.wavedec2(lenaIm, 'db2', level=3)
+
+CA3 = coeffs[0]
+CH3, CV3, CD3 = coeffs[1]
+CH2, CV2, CD2 = coeffs[2]
+CH1, CV1, CD1 = coeffs[3]
+
+# SET 1:
+CA3Copy = np.copy(CA3)
+CA3Height, CA3Width = CA3.shape
+
+# set the values of each 4x4 non-overlapping block in CA3 to its average
+for i in range(0, CA3Height, 4):
+    for j in range(0, CA3Width, 4):
+        blockAvg = np.mean(CA3[i:i+4, j:j+4])
+        CA3Copy[i:i+4, j:j+4] = blockAvg
+
+set1Coeffs = coeffs.copy()
+set1Coeffs[0] = CA3Copy
+set1RestoredImage = pywt.waverec2(set1Coeffs, 'db2')
+
+# SET 2:
+set2Coeffs = coeffs.copy()
+CH1Copy = np.copy(CH1)
+CH1Height, CH1Width = CH1.shape
+
+for i in range(CH1Height):
+    for j in range(CH1Width):
+        CH1Copy[i][j] = 0
+
+set2Coeffs[3] = CH1Copy, CV1, CD1
+set2RestoredImage = pywt.waverec2(set2Coeffs, 'db2')
+
+# SET 3:
+set3Coeffs = coeffs.copy()
+CD2Copy = np.copy(CD2)
+CD2Height, CD2Width = CD2.shape
+
+for i in range(CD2Height):
+    for j in range(CD2Width):
+        CD2Copy[i][j] = 0
+
+set3Coeffs[2] = CH2, CV2, CD2Copy
+set3RestoredImage = pywt.waverec2(set3Coeffs, 'db2')
+
+# SET 4:
+set4Coeffs = coeffs.copy()
+CV3Copy = np.copy(CV3)
+CV3Height, CV3Width = CV3.shape
+
+for i in range(CV3Height):
+    for j in range(CV3Width):
+        CV3Copy[i][j] = 0
+
+set4Coeffs[1] = CH3, CV3Copy, CD3
+set4RestoredImage = pywt.waverec2(set4Coeffs, 'db2')
+
+# plotting
+plt.figure(figsize=(5, 5)) # Figure 7
+plt.suptitle("4x4 average approximation")
+plt.subplot(1, 1, 1)
+plt.imshow(set1RestoredImage, cmap='gray')
+plt.title("Set #1:")
+plt.axis("off")
+
+plt.figure(figsize=(5, 5)) # Figure 8
+plt.suptitle("1st level horizontal details to 0")
+plt.subplot(1, 1, 1)
+plt.imshow(set2RestoredImage, cmap='gray')
+plt.title("Set #2:")
+plt.axis("off")
+
+plt.figure(figsize=(5, 5)) # Figure 9
+plt.suptitle("2nd level diagonal details to 0")
+plt.subplot(1, 1, 1)
+plt.imshow(set3RestoredImage, cmap='gray')
+plt.title("Set #3:")
+plt.axis("off")
+
+plt.figure(figsize=(5, 5)) # Figure 10
+plt.suptitle("3rd level vertical details to 0")
+plt.subplot(1, 1, 1)
+plt.imshow(set4RestoredImage, cmap='gray')
+plt.title("Set #4:")
+plt.axis("off")
+
+
 
 plt.show()
-
