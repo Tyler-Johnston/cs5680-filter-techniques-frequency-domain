@@ -10,6 +10,15 @@ capitalIm = cv2.imread("Capitol.jpg", cv2.IMREAD_GRAYSCALE)
 lenaIm = cv2.imread("Lena.jpg", cv2.IMREAD_GRAYSCALE)
 boyIm = mpimg.imread('boy_noisy.gif') # use mpimg.imread for .gif images, as cv2 as issues reading this
 
+def PSNR(original, processed):
+    mse = np.mean((original - processed) ** 2)
+    # ensures there isn't a divsion of zero   
+    if mse == 0:
+        return float('inf')
+    maximumPossibleIntensity = 255
+    psnr = 10 * np.log10((maximumPossibleIntensity ** 2) / mse)
+    return psnr
+
 # PROBLEM 1 QUESTION 1
 # The equation provided in the notes only uses a single sigma value, but we were given two
 def GaussianLowPass(im, sigma1, sigma2):
@@ -409,7 +418,7 @@ HL1, LH1, HH1 = myCoeffs[3]
 def denoisingMethod(HHX, LHX, HLX, method1=True):
 
     if method1:
-        noiseStdDev = np.median(np.abs(HHX)) / 0.6745
+        noiseStdDev = np.median(np.abs(HH1)) / 0.6745
     else: 
         combinedCoeffs = np.hstack((LH1.ravel(), HL1.ravel(), HH1.ravel()))
         noiseStdDev = np.median(np.abs(combinedCoeffs)) / 0.6745
@@ -449,6 +458,14 @@ HL3Copy2, LH3Copy2, HH3Copy2 = denoisingMethod(HH3, LH3, HL3, False)
 
 denoisedCoeffs2 = [CA3, (HL3Copy2, LH3Copy2, HH3Copy2), (HL2Copy2, LH2Copy2, HH2Copy2), (HL1Copy2, LH1Copy2, HH1Copy2)]
 denoisedLena2 = pywt.waverec2(denoisedCoeffs2, 'db2')
+
+method1PSNR = PSNR(lenaIm, denoisedLena1)
+method2PSNR = PSNR(lenaIm, denoisedLena2)
+
+print("Method 1 PSNR: ", method1PSNR)
+print("Method 2 PSNR: ", method2PSNR)
+
+print("The two denoised images are nearly identical. However, method 1 has a ever-so-slightly higher PSNR, which indicates it is ever-so-slightly closer to the original")
 
 plt.figure(figsize=(10, 5)) # Figure 11
 plt.suptitle("Denoisng Methods")
