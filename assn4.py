@@ -406,7 +406,6 @@ noisyLenaOriginal = random_noise(lenaIm, mode='gaussian', mean=0, var=0.01) * 25
 noisyLenaOriginal = np.clip(noisyLenaOriginal, 0, 255).astype(np.uint8)
 cv2.imwrite("NoisyLena.bmp", noisyLenaOriginal)
 
-# Denoising Method 1
 noisyLena = cv2.imread("NoisyLena.bmp", cv2.IMREAD_GRAYSCALE)
 myCoeffs = pywt.wavedec2(noisyLena, 'db2', level=3)
 
